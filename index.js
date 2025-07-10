@@ -39,7 +39,12 @@ app.route("/api/users")
     res.json(newUser);
   })
   .get((req, res) => {
-    res.json(users);
+    res.json(users.map(u => {
+      return {
+        _id: u._id,
+        username: u.username
+      }
+    }));
   });
 
 app.route("/api/users/:_id/exercises")
