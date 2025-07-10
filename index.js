@@ -39,6 +39,7 @@ app.route("/api/users")
     res.json(newUser);
   })
   .get((req, res) => {
+    console.log(users);
     res.json(users.map(u => {
       return {
         _id: u._id,
