@@ -18,7 +18,8 @@ const userSchema = new mongoose.Schema({
   _id: Number,
   username: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   }
 });
 
@@ -33,6 +34,15 @@ app.route("/api/users")
     const username = req.body.username;
     
     try {
+      const users = await User.find({});
+      const userIds = users.map(u => u._id);
+      console.log(userIds);
+      users.forEach(u => {
+        if (u._id > lastUserId) {
+          lastUserId = u._id;
+        }
+      });
+      console.log("lastUserId:", lastUserId);
       const newUser = new User({_id: ++lastUserId, username: username });
       const savedUser = await newUser.save();
       res.json({
