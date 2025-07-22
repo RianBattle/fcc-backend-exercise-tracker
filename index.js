@@ -1,73 +1,67 @@
 const express = require('express')
 const app = express()
 const cors = require('cors')
+const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 require('dotenv').config()
 
-app.use(cors())
-app.use(express.static('public'))
-app.use(bodyParser.urlencoded({ extended: false }));
+mongoose.connect(process.env.MONGO_URI);
+
+app.use(cors());
+app.use(express.static('public'));
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: "false" }));
+app.use(bodyParser.json());
+
+let lastUserId = 0;
+const userSchema = new mongoose.Schema({
+  _id: Number,
+  username: {
+    type: String,
+    required: true
+  }
+});
+
+let User = mongoose.model("User", userSchema);
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
 
-
-const users = [];
-class User {
-  constructor(username) {
-    this._id = users.length + 1;
-    this.username = username;
-    this.log = [];
-    this.count = 0;
-  }
-}
-
-class Exercise {
-  constructor(description, duration, date) {
-    this.description = description;
-    this.duration = duration;
-    this.date = new Date(date).toDateString();
-  }
-}
-
 app.route("/api/users")
-  .post((req, res) => {
-    const newUser = new User(req.body.username);
+  .post(async (req, res) => {
+    const username = req.body.username;
     
-    users.push(newUser);    
-    res.json(newUser);
-  })
-  .get((req, res) => {
-    console.log(users);
-    res.json(users.map(u => ({ _id: u._id, username: u.username })));
-  });
-
-app.route("/api/users/:_id/exercises")
-  .post((req, res) => {
-    const idToFind = Number(req.params._id);
-    const user = users.find(u => u._id === idToFind);
-    
-    let [description, duration, date] = [req.body.description, req.body.duration, req.body.date]
-    if (!date) {
-      date = Date.now();
+    try {
+      const newUser = new User({_id: ++lastUserId, username: username });
+      const savedUser = await newUser.save();
+      res.json({
+        _id: savedUser._id,
+        username: savedUser.username
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ error: "Error creating user" });
     }
-    
-    const newExercise = new Exercise(description, Number(duration), date);
-    
-    user.log.push(newExercise);
-    user.count += 1;
-    res.json(user);
+  })
+  .get(async (req, res) => {
+    try {
+      const users = await User.find({}, "username _id");
+      res.json(users);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Error fetching users" });
+    }
   });
 
-app.route("/api/users/:_id/logs")
-  .get((req, res) => {
-    const idToFind = Number(req.params._id);
-    const user = users.find(u => u._id === idToFind);
+app.post("/api/users/:_id/exercises", (req, res) => {
+  //
+});
 
-    res.json(user);
-  });
+app.get("/api/users/:_id/logs", (req, res) => {
+  //
+});
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
-})
+});
