@@ -6,7 +6,7 @@ require('dotenv').config()
 app.use(cors())
 app.use(express.static('public'))
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: false }));
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
@@ -35,10 +35,14 @@ class LogEntry {
 const users = [];
 
 app.route("/api/users")
-  .get((req, res) => res.json(users.map(u => ({
-    _id: u._id,
-    username: u.username
-  }))))
+  .get((req, res) => {
+    const output = users.map(u => ({
+      _id: u._id,
+      username: u.username
+    }));
+    console.log(output);
+    res.json(output);
+  })
   .post((req, res) => {
     const newUser = new User(req.body.username);
     users.push(newUser);
