@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 require('dotenv').config()
+const mongoose = require("mongoose");
 
 app.use(cors())
 app.use(express.static('public'))
@@ -12,45 +13,57 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
 
-class User {
-  static nextId = 1;
-  constructor(username) {
-    this._id = User.nextId;
-    User.nextId += 1;
-
-    this.username = username;
-    console.log("username:", username);
-    this.log = [];
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true
   }
-}
+});
 
-class LogEntry {
-  constructor(description, duration, date) {
-    this.description = description;
-    this.duration = duration;
-    this.date = date;
+const logEntrySchema = new mongoose.Schema({
+  description: {
+    type: String,
+    required: true
+  },
+  duration: {
+    type: Number,
+    required: true
+  },
+  date: {
+    type: Date,
+    default: Date.now
   }
-}
+});
 
-const users = [];
+const User = mongoose.model("User", userSchema);
+const LogEntry = mongoose.model("LogEntry", logEntrySchema);
 
 app.route("/api/users")
-  .get((req, res) => {
-    const output = users.map(u => ({
-      _id: u._id,
-      username: u.username
-    }));
-    console.log(output);
-    res.json(output);
+  .get(async (req, res) => {
+    const users = await User.find({}).select("_id username");
+    res.json(users);
   })
-  .post((req, res) => {
-    const newUser = new User(req.body.username);
-    users.push(newUser);
+  .post(async (req, res) => {
+    const username = req.body.username;
+    const newUser = new User({ username: username });
+    await newUser.save();
     res.json({
       _id: newUser._id,
       username: newUser.username
     });
   });
+
+app.route("/api/users/:_id/exercises")
+  .post((req, res) => {
+    // const id = Number(req.params._id);
+    // const { description, duration, date } = req.body;
+    // console.log(id, description, duration, date);
+  });
+
+app.route("/api/users/:_id/logs")
+  .get((req, res) => {
+    //
+  })
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
