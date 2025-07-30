@@ -36,44 +36,97 @@ const logEntrySchema = new mongoose.Schema({
   date: {
     type: Date,
     default: Date.now
+  },
+  user_id: {
+    type: String,
+    required: true
   }
 });
 
 const User = mongoose.model("User", userSchema);
 const LogEntry = mongoose.model("LogEntry", logEntrySchema);
 
+const DATE_REGEX = /[\d]{4}-[\d]{2}-[\d]{2}/;
+
 app.route("/api/users")
   .get(async (req, res) => {
-    console.log("/api/users GET");
     const users = await User.find({}).select("_id username");
-    console.log("users:", users);
     res.json(users);
-    console.log("/api/users GET complete")
   })
   .post(async (req, res) => {
-    console.log("/api/users POST", req.body.username);
     const username = req.body.username;
     const newUser = new User({ username: username });
-    console.log("newUser:", newUser);
     await newUser.save();
-    console.log("newUser saved");
     res.json({
       _id: newUser._id,
       username: newUser.username
     });
-    console.log("/api/users POST complete")
   });
 
 app.route("/api/users/:_id/exercises")
-  .post((req, res) => {
-    // const id = Number(req.params._id);
-    // const { description, duration, date } = req.body;
-    // console.log(id, description, duration, date);
+  .post(async (req, res) => {
+    const id = req.params._id;
+    const description = req.body.description;
+    const duration = req.body.duration;
+
+    const dateInput = req.body.date;
+    let date = undefined;
+    if (DATE_REGEX.test(dateInput)) {
+      date = new Date(dateInput);
+    }
+    else {
+      date = new Date();
+    }
+
+    const user = await User.findById(id);
+
+    const newLogEntry = new LogEntry({
+      description: description,
+      duration: duration,
+      date: date,
+      user_id: id
+    });
+    await newLogEntry.save();
+
+    res.json({
+      _id: user._id,
+      username: user.username,
+      description: newLogEntry.description,
+      duration: newLogEntry.duration,
+      date: newLogEntry.date
+    });
   });
 
 app.route("/api/users/:_id/logs")
-  .get((req, res) => {
-    //
+  .get(async (req, res) => {
+    const id = req.params._id;
+
+    const { from, to, limit } = req.query;
+    
+    const user = await User.findById(id);
+    const logs = await LogEntry.find({ user_id: user._id });
+
+    let filteredLogs = logs;
+    if (DATE_REGEX.test(from) && DATE_REGEX.test(to)) {
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+      filteredLogs = logs.filter(l => l.date >= from && l.date <= to);
+    }
+
+    if (!isNaN(Number(limit))) {
+      filteredLogs = filteredLogs.slice(0, Number(limit));
+    }
+
+    res.json({
+      _id: user._id,
+      username: user.username,
+      count: filteredLogs.length,
+      logs: filteredLogs.map(l => ({
+        description: l.description,
+        duration: l.duration,
+        date: new Date(l.date).toDateString()
+      }))
+    });
   })
 
 const listener = app.listen(process.env.PORT || 3000, () => {
