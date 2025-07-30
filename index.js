@@ -120,8 +120,8 @@ app.route("/api/users/:_id/logs")
     res.json({
       _id: user._id,
       username: user.username,
-      count: filteredLogs.length,
-      logs: filteredLogs.map(l => ({
+      count: logs.length,
+      log: filteredLogs.map(l => ({
         description: l.description,
         duration: l.duration,
         date: new Date(l.date).toDateString()
