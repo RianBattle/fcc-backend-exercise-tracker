@@ -101,20 +101,22 @@ app.route("/api/users/:_id/logs")
   .get(async (req, res) => {
     const id = req.params._id;
 
-    const { from, to, limit } = req.query;
+    const from = req.query.from ? new Date(req.query.from) : null;
+    const to = req.query.to ? new Date(req.query.to) : null;
+    const limit = parseInt(req.query.limit) || 0;
     
     const user = await User.findById(id);
     const logs = await LogEntry.find({ user_id: user._id });
 
     let filteredLogs = logs;
-    if (DATE_REGEX.test(from) && DATE_REGEX.test(to)) {
-      const fromDate = new Date(from);
-      const toDate = new Date(to);
-      filteredLogs = logs.filter(l => l.date >= from && l.date <= to);
+    if (from) {
+      filteredLogs = filteredLogs.filter(l => new Date(l.date) >= from);
     }
-
+    if (to) {
+      filteredLogs = filteredLogs.filter(l => new Date(l.date) <= to);
+    }
     if (!isNaN(Number(limit))) {
-      filteredLogs = filteredLogs.slice(0, Number(limit));
+      filteredLogs = filteredLogs.slice(0, limit);
     }
 
     res.json({
