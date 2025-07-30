@@ -110,12 +110,14 @@ app.route("/api/users/:_id/logs")
 
     let filteredLogs = logs;
     if (from) {
+      console.log("from:", from);
       filteredLogs = filteredLogs.filter(l => new Date(l.date) >= from);
+      console.log(filteredLogs);
     }
     if (to) {
       filteredLogs = filteredLogs.filter(l => new Date(l.date) <= to);
     }
-    if (!isNaN(Number(limit))) {
+    if (limit > 0) {
       filteredLogs = filteredLogs.slice(0, limit);
     }
 
